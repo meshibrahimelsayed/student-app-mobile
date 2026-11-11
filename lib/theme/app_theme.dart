@@ -76,4 +76,46 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get lightTheme {
+    const lightCanvas = Color(0xFFF7F4EF);
+    const lightSurface = Color(0xFFFFFFFF);
+    const lightText = Color(0xFF2B2119);
+    const lightMuted = Color(0xFF75685D);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: lightCanvas,
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFF9A6035),
+        secondary: Color(0xFF8B6B24),
+        surface: lightSurface,
+        surfaceContainerHighest: Color(0xFFEDE6DC),
+        onSurface: lightText,
+        onPrimary: Colors.white,
+      ),
+      textTheme: GoogleFonts.cairoTextTheme(ThemeData.light().textTheme).apply(
+        bodyColor: lightText,
+        displayColor: lightText,
+      ).copyWith(
+        bodyMedium: const TextStyle(color: lightMuted),
+        labelSmall: const TextStyle(color: lightMuted),
+      ),
+      cardTheme: CardTheme(
+        color: lightSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0x1A2B2119)),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        foregroundColor: lightText,
+      ),
+      dividerColor: const Color(0x1A2B2119),
+    );
+  }
 }

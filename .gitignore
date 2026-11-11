@@ -18,6 +18,7 @@ Thumbs.db
 
 # Local archives and credentials/configuration
 .work/
+.tooling/
 .env
 .env.*
 !.env.example

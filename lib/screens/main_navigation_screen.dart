@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_strings.dart';
 import '../theme/app_theme.dart';
 import 'today_screen.dart';
 import 'assignments_screen.dart';
 import 'courses_screen.dart';
 import 'study_copilot_screen.dart';
 import 'alerts_screen.dart';
+import 'content_archive_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -26,22 +28,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  static const List<_NavItem> _navItems = [
-    _NavItem(label: 'اليوم',    icon: Icons.home_outlined,          activeIcon: Icons.home_rounded),
-    _NavItem(label: 'المهام',   icon: Icons.check_circle_outline,   activeIcon: Icons.check_circle_rounded),
-    _NavItem(label: 'المواد',   icon: Icons.folder_outlined,        activeIcon: Icons.folder_rounded),
-    _NavItem(label: 'مذاكرة',   icon: Icons.auto_awesome_outlined,  activeIcon: Icons.auto_awesome_rounded),
-    _NavItem(label: 'التحديثات',  icon: Icons.radar_outlined,         activeIcon: Icons.radar),
+  List<_NavItem> _navItems(BuildContext context) => [
+    _NavItem(label: AppStrings.text(context, 'اليوم', 'Today'), icon: Icons.home_outlined, activeIcon: Icons.home_rounded),
+    _NavItem(label: AppStrings.text(context, 'المحتوى', 'Library'), icon: Icons.library_books_outlined, activeIcon: Icons.library_books_rounded),
+    _NavItem(label: AppStrings.text(context, 'المهام', 'Tasks'), icon: Icons.check_circle_outline, activeIcon: Icons.check_circle_rounded),
+    _NavItem(label: AppStrings.text(context, 'المواد', 'Courses'), icon: Icons.folder_outlined, activeIcon: Icons.folder_rounded),
+    _NavItem(label: AppStrings.text(context, 'مذاكرة', 'Study'), icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome_rounded),
+    _NavItem(label: AppStrings.text(context, 'تحديثات', 'Updates'), icon: Icons.notifications_outlined, activeIcon: Icons.notifications_rounded),
   ];
 
   List<Widget> _buildScreens() {
     return [
       TodayScreen(onNavigateTab: _navigateToTab),
+      const ContentArchiveScreen(),
       const AssignmentsScreen(),
       CoursesScreen(
         onOpenStudyCourse: (name) => _navigateToTab(
-          3,
-          prompt: 'لخصلي المحاضرات الأخيرة ونقاط مادة $name',
+          4,
+          prompt: AppStrings.text(context, 'لخصلي المحاضرات الأخيرة ونقاط مادة $name', 'Summarize the latest lectures and key points for $name'),
         ),
       ),
       StudyCopilotScreen(
@@ -64,6 +68,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   // ─── iOS-style bottom tab bar ───────────────────────────────
   Widget _buildBottomBar() {
+    final items = _navItems(context);
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceElevated,
@@ -71,10 +76,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       child: SafeArea(
         child: SizedBox(
-          height: 56,
+        height: 64,
           child: Row(
-            children: List.generate(_navItems.length, (i) {
-              final item = _navItems[i];
+            children: List.generate(items.length, (i) {
+              final item = items[i];
               final isActive = _currentIndex == i;
               return Expanded(
                 child: GestureDetector(
@@ -95,7 +100,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           ),
                           child: Icon(
                             isActive ? item.activeIcon : item.icon,
-                            size: 20,
+                          size: 20,
                             color: isActive ? AppTheme.accentGold : AppTheme.textMuted,
                           ),
                         ),
@@ -103,7 +108,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         Text(
                           item.label,
                           style: TextStyle(
-                            fontSize: 10,
+                          fontSize: 9,
                             fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
                             color: isActive ? AppTheme.accentGold : AppTheme.textMuted,
                           ),

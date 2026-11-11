@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_strings.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/study_digest_service.dart';
+import '../services/study_store.dart';
+import 'settings_screen.dart';
 import '../theme/app_theme.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -16,8 +20,11 @@ class TodayScreen extends StatefulWidget {
 class _TodayScreenState extends State<TodayScreen> {
   List<ScheduleItem> schedule = [];
   List<AssignmentItem> assignments = [];
+  StudyDigest _todayDigest = const StudyDigest(0, {}, []);
+  StudyDigest _weekDigest = const StudyDigest(0, {}, []);
+  List<CourseProgress> _courseProgress = [];
   bool isLoading = true;
-  int selectedDay = 1; // Sunday = index 1 (today)
+  int selectedDay = 2;
 
   @override
   void initState() {
@@ -26,12 +33,20 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   Future<void> loadData() async {
-    final sch = await ApiService.getTodaySchedule();
-    final asg = await ApiService.getAssignments();
+    final results = await Future.wait([
+      ApiService.getTodaySchedule(),
+      ApiService.getAssignments(),
+      StudyDigestService.daily(),
+      StudyDigestService.weekly(),
+      StudyStore.instance.getCourseProgress(),
+    ]);
     if (mounted) {
       setState(() {
-        schedule = sch;
-        assignments = asg;
+        schedule = results[0] as List<ScheduleItem>;
+        assignments = results[1] as List<AssignmentItem>;
+        _todayDigest = results[2] as StudyDigest;
+        _weekDigest = results[3] as StudyDigest;
+        _courseProgress = results[4] as List<CourseProgress>;
         isLoading = false;
       });
     }
@@ -57,6 +72,13 @@ class _TodayScreenState extends State<TodayScreen> {
                 child: _buildWeekStrip(),
               ),
             ),
+            if (!isLoading)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: _buildStudyOverview(),
+                ),
+              ),
             if (assignments.any((item) => !item.isCompleted))
               SliverToBoxAdapter(
                 child: Padding(
@@ -68,7 +90,7 @@ class _TodayScreenState extends State<TodayScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _buildSectionLabel('جدول اليوم', '${schedule.length} فعاليات'),
+                child: _buildSectionLabel(AppStrings.text(context, 'جدول اليوم', 'Today’s schedule'), AppStrings.text(context, '${schedule.length} فعاليات', '${schedule.length} events')),
               ),
             ),
             SliverToBoxAdapter(
@@ -81,8 +103,8 @@ class _TodayScreenState extends State<TodayScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: _buildSectionLabel('تكليفات قريبة', 'عرض الكل',
-                    onTap: () => widget.onNavigateTab(1)),
+                child: _buildSectionLabel(AppStrings.text(context, 'تكليفات قريبة', 'Upcoming tasks'), AppStrings.text(context, 'عرض الكل', 'See all'),
+                    onTap: () => widget.onNavigateTab(2)),
               ),
             ),
             SliverList(
@@ -156,17 +178,18 @@ class _TodayScreenState extends State<TodayScreen> {
                         ),
                         const SizedBox(width: 10),
                         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('رفيق الكلية', style: GoogleFonts.cairo(
+                          Text(AppStrings.text(context, 'رفيق الكلية', 'College Companion'), style: GoogleFonts.cairo(
                             fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary,
                           )),
-                          Text('معاينة تفاعلية · بيانات توضيحية', style: GoogleFonts.cairo(
+                          Text(ApiService.demoMode ? AppStrings.text(context, 'معاينة تفاعلية · بيانات توضيحية', 'Interactive preview · Sample data') : AppStrings.text(context, 'محتواك الدراسي ومتابعة المحاضرات', 'Your study feed and lecture progress'), style: GoogleFonts.cairo(
                             fontSize: 10, color: AppTheme.textMuted,
                           )),
                         ]),
                       ]),
-                      GestureDetector(
-                        onTap: () => widget.onNavigateTab(4),
-                        child: Container(
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        GestureDetector(
+                          onTap: () => widget.onNavigateTab(5),
+                          child: Container(
                           width: 36, height: 36,
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceCard,
@@ -183,23 +206,31 @@ class _TodayScreenState extends State<TodayScreen> {
                               ),
                             ),
                           ]),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                          tooltip: AppStrings.text(context, 'الإعدادات', 'Settings'),
+                          icon: const Icon(Icons.settings_outlined, size: 20, color: AppTheme.textSecondary),
+                          style: IconButton.styleFrom(minimumSize: const Size(48, 48), backgroundColor: AppTheme.surfaceCard),
+                        ),
+                      ]),
                     ],
                   ),
                   const SizedBox(height: 18),
                   // Welcome text
-                  Text('صباح الخير،', style: GoogleFonts.cairo(
+                  Text(AppStrings.text(context, 'صباح الخير،', 'Good day,'), style: GoogleFonts.cairo(
                     fontSize: 13, color: AppTheme.textMuted,
                   )),
-                  Text('الأربعاء ١١ نوفمبر', style: GoogleFonts.cairo(
+                  Text(_todayLabel(), style: GoogleFonts.cairo(
                     fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, height: 1.1,
                   )),
                   const SizedBox(height: 10),
                   Row(children: [
-                    _buildStatChip(Icons.event_note_rounded, '${schedule.length} محاضرات', AppTheme.accentWarm),
+                    _buildStatChip(Icons.event_note_rounded, AppStrings.text(context, '${schedule.length} محاضرات', '${schedule.length} lectures'), AppTheme.accentWarm),
                     const SizedBox(width: 8),
-                    _buildStatChip(Icons.assignment_outlined, '${assignments.where((a) => !a.isCompleted).length} مهام', AppTheme.accentGold),
+                    _buildStatChip(Icons.assignment_outlined, AppStrings.text(context, '${assignments.where((a) => !a.isCompleted).length} مهام', '${assignments.where((a) => !a.isCompleted).length} tasks'), AppTheme.accentGold),
                   ]),
                 ],
               ),
@@ -226,11 +257,114 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
+  String _todayLabel() {
+    final now = DateTime.now();
+    return '${_weekdayName(now.weekday)} ${now.day} ${_monthName(now.month)}';
+  }
+
+  String _weekdayName(int weekday) {
+    const ar = ['', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    const en = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return AppStrings.isArabic(context) ? ar[weekday] : en[weekday];
+  }
+
+  String _monthName(int month) {
+    const ar = ['', 'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const en = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return AppStrings.isArabic(context) ? ar[month] : en[month];
+  }
+
+  Widget _buildStudyOverview() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _buildDigestCard(AppStrings.text(context, 'ملخص النهاردة', 'Today’s summary'), _todayDigest, Icons.today_rounded),
+        const SizedBox(height: 10),
+        _buildCourseProgressCard(),
+        const SizedBox(height: 10),
+        _buildDigestCard(AppStrings.text(context, 'آخر ٧ أيام', 'Last 7 days'), _weekDigest, Icons.date_range_rounded),
+      ]);
+
+  Widget _buildDigestCard(String title, StudyDigest digest, IconData icon) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppTheme.borderSubtle)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, color: AppTheme.accentGold, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary))),
+            Text(AppStrings.text(context, '${digest.itemCount} عنصر', '${digest.itemCount} items'), style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+          ]),
+          const SizedBox(height: 9),
+          if (digest.itemCount == 0)
+            Row(children: [
+              Expanded(child: Text(AppStrings.text(context, 'استورد محادثة أو ملفات عشان يظهر ملخص المحتوى هنا.', 'Import a chat or files to see a summary here.'), style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.45))),
+              TextButton(onPressed: () => widget.onNavigateTab(1), child: Text(AppStrings.text(context, 'استيراد', 'Import'))),
+            ])
+          else ...[
+            if (digest.categories.isNotEmpty)
+              Text(digest.categories.entries.map((entry) => '${_localizedCategory(entry.key)} ${entry.value}').join('  ·  '), style: const TextStyle(fontSize: 11, color: AppTheme.accentGold)),
+            const SizedBox(height: 5),
+            ...digest.highlights.take(3).map((line) => Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: Text('• $line', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
+                )),
+          ],
+        ]),
+      );
+
+  String _localizedCategory(String value) {
+    if (AppStrings.isArabic(context)) return value;
+    return switch (value) {
+      'محاضرة' => 'Lecture',
+      'سكشن' => 'Section',
+      'واجب' => 'Assignment',
+      'امتحان' => 'Exam',
+      'إعلان' => 'Announcement',
+      'ملف' => 'File',
+      _ => 'Other',
+    };
+  }
+
+  Widget _buildCourseProgressCard() => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: AppTheme.surfaceCard, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppTheme.borderSubtle)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.auto_graph_rounded, color: AppTheme.accentSage, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(AppStrings.text(context, 'تقدم المواد', 'Course progress'), style: GoogleFonts.cairo(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary))),
+            TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())), child: Text(AppStrings.text(context, 'إدارة', 'Manage'))),
+          ]),
+          if (_courseProgress.isEmpty)
+            Text(AppStrings.text(context, 'أضف موادك من الإعدادات.', 'Add your courses in Settings.'), style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary))
+          else
+            ..._courseProgress.take(3).map((course) => Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(course.name, style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w600))),
+                      Text(course.totalLectures == 0
+                          ? AppStrings.text(context, '${course.lecturesCompleted} مرصود', '${course.lecturesCompleted} tracked')
+                          : course.isComplete
+                              ? AppStrings.text(context, 'اكتملت', 'Complete')
+                              : AppStrings.text(context, '${course.lecturesCompleted}/${course.totalLectures} محاضرة', '${course.lecturesCompleted}/${course.totalLectures} lectures'),
+                          style: TextStyle(fontSize: 10, color: course.isComplete ? AppTheme.accentSage : AppTheme.textMuted)),
+                    ]),
+                    if (course.totalLectures > 0) ...[
+                      const SizedBox(height: 5),
+                      ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: course.fraction, minHeight: 4, backgroundColor: AppTheme.surfaceElevated, valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentSage))),
+                    ],
+                  ]),
+                )),
+        ]),
+      );
+
   // ─── Week Strip ───────────────────────────────────────────────
   Widget _buildWeekStrip() {
-    final days = ['ث', 'ح', 'ن', 'ث', 'ر'];
-    final numbers = ['9', '10', '11', '12', '13'];
-    final dayNames = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء'];
+    final today = DateTime.now();
+    final dates = List.generate(5, (index) => DateTime(today.year, today.month, today.day + index - 2));
+    final days = dates.map((date) => AppStrings.isArabic(context)
+        ? ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'][date.weekday % 7]
+        : ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.weekday % 7]).toList();
+    final numbers = dates.map((date) => '${date.day}').toList();
 
     return Row(
       children: List.generate(5, (i) {
@@ -306,7 +440,7 @@ class _TodayScreenState extends State<TodayScreen> {
         ])),
         const SizedBox(width: 12),
         GestureDetector(
-          onTap: () => widget.onNavigateTab(3),
+          onTap: () => widget.onNavigateTab(4),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(

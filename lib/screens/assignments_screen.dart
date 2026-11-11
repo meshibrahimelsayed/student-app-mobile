@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_strings.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -54,7 +55,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('صندوق المهام', style: GoogleFonts.cairo(
+                  Text(AppStrings.text(context, 'صندوق المهام', 'Tasks'), style: GoogleFonts.cairo(
                     fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5,
                   )),
                   Container(
@@ -64,12 +65,12 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppTheme.accentGold.withOpacity(0.3)),
                     ),
-                    child: Text('${pending.length} معلّق',
+                    child: Text(AppStrings.text(context, '${pending.length} معلّق', '${pending.length} pending'),
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.accentGold)),
                   ),
                 ]),
                 const SizedBox(height: 2),
-                Text('تُستخرج آلياً من جروبات الدكاترة',
+                Text(AppStrings.text(context, 'تُستخرج آلياً من جروبات الدكاترة', 'Collected from your study groups'),
                     style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                 const SizedBox(height: 14),
                 // Segmented tab control
@@ -94,7 +95,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
                     unselectedLabelStyle: GoogleFonts.cairo(fontSize: 11),
                     labelColor: Colors.white,
                     unselectedLabelColor: AppTheme.textMuted,
-                    tabs: const [Tab(text: 'الكل'), Tab(text: 'المعلّق'), Tab(text: 'المكتمل')],
+                    tabs: [Tab(text: AppStrings.text(context, 'الكل', 'All')), Tab(text: AppStrings.text(context, 'المعلّق', 'Pending')), Tab(text: AppStrings.text(context, 'المكتمل', 'Done'))],
                   ),
                 ),
               ]),
@@ -108,7 +109,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
                     color: AppTheme.accentWarm, strokeWidth: 2,
                   ))
                 : loadError != null
-                    ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.cloud_off_rounded, size: 44, color: AppTheme.textMuted), const SizedBox(height: 12), const Text('تعذر تحميل المهام من الخادم', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)), const SizedBox(height: 8), OutlinedButton(onPressed: () { setState(() { isLoading = true; }); loadAssignments(); }, child: const Text('إعادة المحاولة'))])))
+                    ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.cloud_off_rounded, size: 44, color: AppTheme.textMuted), const SizedBox(height: 12), Text(AppStrings.text(context, 'تعذر تحميل المهام من الخادم', 'Could not load tasks from the server'), textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)), const SizedBox(height: 8), OutlinedButton(onPressed: () { setState(() { isLoading = true; }); loadAssignments(); }, child: Text(AppStrings.text(context, 'إعادة المحاولة', 'Try again')))])))
                     : TabBarView(
                     controller: _tabController,
                     children: [
@@ -128,7 +129,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
       return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.check_circle_outline_rounded, size: 40, color: AppTheme.textMuted.withOpacity(0.3)),
         const SizedBox(height: 10),
-        Text('لا توجد مهام هنا', style: GoogleFonts.cairo(color: AppTheme.textMuted, fontSize: 13)),
+        Text(AppStrings.text(context, 'لا توجد مهام هنا', 'Nothing here yet'), style: GoogleFonts.cairo(color: AppTheme.textMuted, fontSize: 13)),
       ]));
     }
     return ListView.builder(
@@ -199,7 +200,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
             Row(children: [
               Icon(Icons.chat_bubble_outline_rounded, size: 11, color: AppTheme.textMuted.withOpacity(0.5)),
               const SizedBox(width: 4),
-              Text('رُصد تلقائياً من الجروب',
+              Text(AppStrings.text(context, 'رُصد تلقائياً من الجروب', 'Added from a group'),
                   style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
             ]),
             GestureDetector(
@@ -217,7 +218,7 @@ class _AssignmentsScreenState extends State<AssignmentsScreen>
                   border: item.isCompleted ? Border.all(color: AppTheme.borderSubtle) : null,
                 ),
                 child: Text(
-                  item.isCompleted ? 'إعادة للمعلّق' : 'تم الإنجاز ✔',
+                  item.isCompleted ? AppStrings.text(context, 'إعادة للمعلّق', 'Mark pending') : AppStrings.text(context, 'تم الإنجاز ✔', 'Mark done ✔'),
                   style: TextStyle(
                     fontSize: 11, fontWeight: FontWeight.bold,
                     color: item.isCompleted ? AppTheme.textMuted : Colors.white,

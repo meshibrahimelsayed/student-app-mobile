@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_strings.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -40,9 +41,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
             future: _coursesFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return _loading();
-              if (snapshot.hasError || ApiService.lastError != null) return _state('تعذر تحميل المواد', 'تحقق من اتصال الخادم ثم اسحب الشاشة للمحاولة مرة أخرى', Icons.cloud_off_rounded, _reload);
+              if (snapshot.hasError || ApiService.lastError != null) return _state(AppStrings.text(context, 'تعذر تحميل المواد', 'Could not load courses'), AppStrings.text(context, 'تحقق من اتصال الخادم ثم اسحب الشاشة للمحاولة مرة أخرى', 'Check the server connection, then pull to try again.'), Icons.cloud_off_rounded, _reload);
               final courses = snapshot.data ?? const <SubjectCourse>[];
-              if (courses.isEmpty) return _state('لا توجد مواد بعد', 'ستظهر موادك هنا بعد مزامنة حسابك مع نظام الجامعة', Icons.menu_book_outlined, _reload);
+              if (courses.isEmpty) return _state(AppStrings.text(context, 'لا توجد مواد بعد', 'No courses yet'), AppStrings.text(context, 'ستظهر موادك هنا بعد مزامنة حسابك مع نظام الجامعة', 'Your courses will appear here after syncing with your university.'), Icons.menu_book_outlined, _reload);
               return CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -61,9 +62,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
   Widget _header(int count) => Padding(
     padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('المقررات الدراسية', style: GoogleFonts.cairo(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+      Text(AppStrings.text(context, 'المقررات الدراسية', 'Courses'), style: GoogleFonts.cairo(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
       const SizedBox(height: 4),
-      Text('$count مواد مرتبطة بحسابك', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+      Text(AppStrings.text(context, '$count مواد مرتبطة بحسابك', '$count courses in your account'), style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
     ]),
   );
 
@@ -92,11 +93,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 ),
               )),
               const SizedBox(width: 8),
-              Text('${course.completedLectures}/${course.totalLectures} محاضرات', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+              Text(AppStrings.text(context, '${course.completedLectures}/${course.totalLectures} محاضرات', '${course.completedLectures}/${course.totalLectures} lectures'), style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
             ]),
           ],
           const SizedBox(height: 7),
-          Wrap(spacing: 6, children: [if (course.lectureCount > 0) _pill('${course.lectureCount} محاضرة', color), if (course.materialsCount > 0) _pill('${course.materialsCount} ملف', AppTheme.accentSage), if (course.pendingSheets > 0) _pill('${course.pendingSheets} شيت', AppTheme.accentGold)]),
+          Wrap(spacing: 6, children: [if (course.lectureCount > 0) _pill(AppStrings.text(context, '${course.lectureCount} محاضرة', '${course.lectureCount} lectures'), color), if (course.materialsCount > 0) _pill(AppStrings.text(context, '${course.materialsCount} ملف', '${course.materialsCount} files'), AppTheme.accentSage), if (course.pendingSheets > 0) _pill(AppStrings.text(context, '${course.pendingSheets} شيت', '${course.pendingSheets} sheets'), AppTheme.accentGold)]),
         ])),
         IconButton(onPressed: () => widget.onOpenStudyCourse(course.name), icon: Icon(Icons.auto_awesome_rounded, color: color)),
       ]),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_strings.dart';
 import '../models/models.dart';
+import '../services/app_preferences.dart';
 import '../services/api_service.dart';
 import '../services/chat_export_service.dart';
 import '../theme/app_theme.dart';
@@ -23,21 +25,38 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
 
   static const List<String> subjectOptions = ['عام', 'الذكاء الاصطناعي', 'قواعد البيانات', 'شبكات الحاسب', 'هندسة البرمجيات', 'بحوث العمليات'];
 
-  static const List<Map<String, String>> quickPrompts = [
-    {'label': '💡 شرح الـ Normalization', 'prompt': 'اشرحلي الـ Normalization ببساطة مع مثال عملي'},
-    {'label': '🎯 كويز في الـ AI', 'prompt': 'اعملي كويز سريع من 3 أسئلة في خوارزميات الذكاء الاصطناعي'},
-    {'label': '📝 OSI Model', 'prompt': 'لخصلي طبقات الـ OSI Model في جملتين لكل طبقة'},
-    {'label': '⚡ مراجعة سريعة', 'prompt': 'أعطني أهم 5 نقاط للمراجعة قبل الامتحان في مادة'},
-  ];
+  List<Map<String, String>> _quickPrompts() => AppStrings.isArabic(context)
+      ? [
+          {'label': '💡 شرح الـ Normalization', 'prompt': 'اشرحلي الـ Normalization ببساطة مع مثال عملي'},
+          {'label': '🎯 كويز في الـ AI', 'prompt': 'اعملي كويز سريع من 3 أسئلة في خوارزميات الذكاء الاصطناعي'},
+          {'label': '📝 OSI Model', 'prompt': 'لخصلي طبقات الـ OSI Model في جملتين لكل طبقة'},
+          {'label': '⚡ مراجعة سريعة', 'prompt': 'أعطني أهم 5 نقاط للمراجعة قبل الامتحان في مادة'},
+        ]
+      : [
+          {'label': '💡 Explain normalization', 'prompt': 'Explain database normalization with a practical example'},
+          {'label': '🎯 AI quiz', 'prompt': 'Give me a quick 3-question quiz on AI search algorithms'},
+          {'label': '📝 OSI model', 'prompt': 'Summarize each OSI layer in one sentence'},
+          {'label': '⚡ Quick review', 'prompt': 'Give me five key points to review before the exam'},
+        ];
 
   @override
   void initState() {
     super.initState();
-    _addAIMessage('أهلاً بك في رفيق المذاكرة. اكتب سؤالك أو اختر مادة، وسأساعدك عندما تكون خدمة الذكاء الاصطناعي متاحة.');
+    _addAIMessage(AppPreferences.locale.value.languageCode == 'ar' ? 'أهلاً بك في رفيق المذاكرة. اكتب سؤالك أو اختر مادة، وسأساعدك عندما تكون خدمة الذكاء الاصطناعي متاحة.' : 'Welcome to Study Buddy. Ask a question or choose a course. AI replies need a connected service.');
     if (widget.initialPrompt != null && widget.initialPrompt!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => sendMessage(widget.initialPrompt!));
     }
   }
+
+  String _subjectEnglish(String subject) => switch (subject) {
+        'عام' => 'General',
+        'الذكاء الاصطناعي' => 'Artificial intelligence',
+        'قواعد البيانات' => 'Databases',
+        'شبكات الحاسب' => 'Computer networks',
+        'هندسة البرمجيات' => 'Software engineering',
+        'بحوث العمليات' => 'Operations research',
+        _ => subject,
+      };
 
   void _addAIMessage(String text) {
     messages.add(StudyChatMessage(sender: 'assistant', text: text, timestamp: DateTime.now()));
@@ -71,13 +90,13 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
       await ChatExportService.export(messages);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تجهيز ملف المحادثة للمشاركة')),
+          SnackBar(content: Text(AppStrings.text(context, 'تم تجهيز ملف المحادثة للمشاركة', 'Chat export is ready to share'))),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر تصدير المحادثة')),
+          SnackBar(content: Text(AppStrings.text(context, 'تعذر تصدير المحادثة', 'Could not export the chat'))),
         );
       }
     }
@@ -104,6 +123,7 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final quickPrompts = _quickPrompts();
     return Scaffold(
       body: Column(
         children: [
@@ -124,17 +144,17 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
                     decoration: const BoxDecoration(shape: BoxShape.circle, color: AppTheme.accentEmerald),
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(child: Text('اختر المادة ثم ابدأ سؤالك', style: TextStyle(fontSize: 11, color: AppTheme.textMuted))),
+                  Expanded(child: Text(AppStrings.text(context, 'اختر المادة ثم ابدأ سؤالك', 'Choose a course, then ask away'), style: const TextStyle(fontSize: 11, color: AppTheme.textMuted))),
                   DropdownButton<String>(
                     value: selectedSubject,
                     dropdownColor: AppTheme.surfaceElevated,
                     underline: const SizedBox(),
                     icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.textMuted, size: 16),
                     style: const TextStyle(fontSize: 11, color: AppTheme.accentCobalt, fontWeight: FontWeight.bold),
-                    items: subjectOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                    items: subjectOptions.map((s) => DropdownMenuItem(value: s, child: Text(AppStrings.isArabic(context) ? s : _subjectEnglish(s)))).toList(),
                     onChanged: (val) => setState(() => selectedSubject = val ?? 'عام'),
                   ),
-                  IconButton(onPressed: _exportChat, tooltip: 'تصدير المحادثة', icon: const Icon(Icons.ios_share_rounded, color: AppTheme.accentGold, size: 19)),
+                  IconButton(onPressed: _exportChat, tooltip: AppStrings.text(context, 'تصدير المحادثة', 'Export chat'), icon: const Icon(Icons.ios_share_rounded, color: AppTheme.accentGold, size: 19)),
                 ],
               ),
             ),
@@ -204,7 +224,7 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: sendMessage,
                         decoration: const InputDecoration(
-                          hintText: 'اسأل عن أي مفهوم أو اطلب تلخيصاً...',
+                          hintText: AppStrings.text(context, 'اسأل عن أي مفهوم أو اطلب تلخيصاً...', 'Ask about a topic or request a summary…'),
                           hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 12),
@@ -321,7 +341,7 @@ class _StudyCopilotScreenState extends State<StudyCopilotScreen> {
               children: [
                 SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppTheme.accentCobalt)),
                 SizedBox(width: 10),
-                Text('رفيق المذاكرة يجهز الشرح...', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                Text(AppStrings.text(context, 'رفيق المذاكرة يجهز الشرح...', 'Study Buddy is thinking…'), style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
               ],
             ),
           )

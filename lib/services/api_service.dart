@@ -2,12 +2,36 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'demo_data.dart';
+import 'study_store.dart';
 
 class ApiService {
-  static const String baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000');
-  static const bool demoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: true);
+  static const String _defaultBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000');
+  static String? _configuredBaseUrl;
+  static String get baseUrl => _configuredBaseUrl ?? _defaultBaseUrl;
+  static const bool _defaultDemoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: true);
+  static bool _demoMode = _defaultDemoMode;
+  static bool get demoMode => _demoMode;
   static String? lastError;
   static final Map<String, bool> _demoCompletion = {};
+  static bool get hasConfiguredBackend => _configuredBaseUrl != null;
+
+  static Future<void> initialize() async {
+    final saved = await StudyStore.instance.getSetting('backend_url');
+    _configuredBaseUrl = saved == null || saved.isEmpty ? null : saved;
+    final demo = await StudyStore.instance.getSetting('demo_mode');
+    if (demo != null) _demoMode = demo == 'true';
+  }
+
+  static Future<void> setDemoMode(bool value) async {
+    _demoMode = value;
+    await StudyStore.instance.setSetting('demo_mode', value.toString());
+  }
+
+  static Future<void> setBaseUrl(String value) async {
+    final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    _configuredBaseUrl = normalized.isEmpty ? null : normalized;
+    await StudyStore.instance.setSetting('backend_url', normalized);
+  }
 
   static Future<List<ScheduleItem>> getTodaySchedule() async {
     if (demoMode) return List.of(DemoData.schedule);
@@ -87,6 +111,20 @@ class ApiService {
     } catch (error) {
       lastError = error.toString();
       return false;
+    }
+  }
+
+  static Future<String?> transcribeAudio(String path) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/media/transcribe'));
+      request.files.add(await http.MultipartFile.fromPath('file', path));
+      final response = await http.Response.fromStream(await request.send().timeout(const Duration(minutes: 2)));
+      final data = _decodeObject(response);
+      final transcript = data?['text'];
+      return transcript is String && transcript.trim().isNotEmpty ? transcript.trim() : null;
+    } catch (error) {
+      lastError = error.toString();
+      return null;
     }
   }
 
